@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLR | Demo Operaciones Portuarias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --bg-soft: #0f172a;
+      --surface: #111827;
+      --surface-2: #1a2235;
+      --surface-3: #22304a;
+      --border: #1e3a5f;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --teal: #14b8a6;
+      --purple: #a855f7;
+      --green: #22c55e;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --muted-2: #64748b;
+      --line: rgba(148, 163, 184, .17);
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      --radius: 12px;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+    }
+
+    .app-shell {
+      position: relative;
+      min-height: 100vh;
+      isolation: isolate;
+    }
+
+    .harbor-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(180deg, rgba(10, 15, 30, .28), rgba(10, 15, 30, .86) 54%, #08111f 100%),
+        radial-gradient(circle at 72% 12%, rgba(59, 130, 246, .22), transparent 31%),
+        linear-gradient(180deg, #10213b 0%, #0a0f1e 48%, #07101d 100%);
+    }
+
+    .harbor-scene {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 285px;
+      z-index: -1;
+      overflow: hidden;
+      opacity: .78;
+      pointer-events: none;
+    }
+
+    .water {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 96px;
+      background:
+        repeating-linear-gradient(175deg, rgba(56, 189, 248, .16) 0 2px, transparent 2px 22px),
+        linear-gradient(180deg, rgba(14, 116, 144, .3), rgba(15, 23, 42, .88));
+      border-top: 1px solid rgba(125, 211, 252, .18);
+    }
+
+    .ship {
+      position: absolute;
+      right: 6%;
+      bottom: 76px;
+      width: min(480px, 52vw);
+      height: 84px;
+    }
+
+    .ship::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 44px;
+      clip-path: polygon(0 0, 92% 0, 100% 42%, 88% 100%, 8% 100%);
+      background: #13233c;
+      border: 1px solid rgba(148, 163, 184, .18);
+    }
+
+    .ship::after {
+      content: "";
+      position: absolute;
+      left: 28%;
+      bottom: 44px;
+      width: 44%;
+      height: 34px;
+      background:
+        repeating-linear-gradient(90deg, rgba(59, 130, 246, .32) 0 16px, rgba(241, 245, 249, .1) 16px 18px),
+        #1a2b46;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .crane {
+      position: absolute;
+      bottom: 92px;
+      width: 170px;
+      height: 155px;
+      border-left: 7px solid rgba(148, 163, 184, .48);
+      border-bottom: 6px solid rgba(148, 163, 184, .38);
+      transform-origin: bottom left;
+    }
+
+    .crane::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: -10px;
+      width: 160px;
+      border-top: 7px solid rgba(59, 130, 246, .48);
+      transform: skewY(-16deg);
+    }
+
+    .crane::after {
+      content: "";
+      position: absolute;
+      top: 25px;
+      right: 10px;
+      height: 62px;
+      border-left: 2px solid rgba(148, 163, 184, .38);
+      box-shadow: 0 62px 0 rgba(16, 185, 129, .38);
+    }
+
+    .crane.one { left: 6%; }
+    .crane.two { left: 22%; transform: scale(.82); opacity: .72; }
+    .crane.three { right: 28%; transform: scale(.7); opacity: .58; }
+
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 76px;
+      padding: 14px 28px;
+      background: rgba(10, 15, 30, .86);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(30, 58, 95, .75);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 210px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #1d4ed8, #14b8a6);
+      box-shadow: 0 12px 30px rgba(59, 130, 246, .26);
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.05;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .nav-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 13px;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color .2s ease, background .2s ease;
+    }
+
+    .nav-btn:hover {
+      color: var(--text);
+      background: rgba(148, 163, 184, .08);
+    }
+
+    .nav-btn.active {
+      color: #fff;
+      background: rgba(59, 130, 246, .12);
+    }
+
+    .nav-btn.active::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: -15px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #172554;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      color: #bfdbfe;
+      flex: 0 0 auto;
+    }
+
+    main {
+      width: min(1440px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 28px 0 58px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: #93c5fd;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 54px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 12px 0 0;
+      max-width: 840px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .demo-status {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(92px, 1fr));
+      gap: 10px;
+      width: min(470px, 100%);
+    }
+
+    .status-chip {
+      min-height: 70px;
+      padding: 12px;
+      border-radius: var(--radius);
+      background: rgba(17, 24, 39, .82);
+      border: 1px solid rgba(30, 58, 95, .76);
+    }
+
+    .status-chip strong {
+      display: block;
+      font-size: 20px;
+    }
+
+    .status-chip span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      display: none;
+      animation: enter .26s ease both;
+    }
+
+    .section.active { display: block; }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .two-col {
+      grid-template-columns: minmax(0, .86fr) minmax(390px, 1.14fr);
+    }
+
+    .three-col {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid rgba(30, 58, 95, .82);
+      border-radius: var(--radius);
+      background: rgba(17, 24, 39, .88);
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 750;
+    }
+
+    .card-title small {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .card-body { padding: 18px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 8px;
+      background: rgba(148, 163, 184, .12);
+      border: 1px solid rgba(148, 163, 184, .16);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(59, 130, 246, .52);
+      background: rgba(59, 130, 246, .14);
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .btn.primary:hover { background: var(--primary-hover); }
+
+    .btn.success {
+      background: rgba(16, 185, 129, .16);
+      border-color: rgba(16, 185, 129, .38);
+      color: #a7f3d0;
+    }
+
+    .btn.small {
+      min-height: 34px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+
+    .filter-row, .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .filter-btn, .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .1);
+      border: 1px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .filter-btn.active, .pill.active {
+      color: #fff;
+      border-color: rgba(59, 130, 246, .5);
+      background: rgba(59, 130, 246, .17);
+    }
+
+    .email-list {
+      display: grid;
+      gap: 9px;
+      max-height: 670px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .email-row {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px;
+      border-radius: 10px;
+      background: rgba(26, 34, 53, .82);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .email-row:hover, .email-row.active {
+      border-color: rgba(59, 130, 246, .48);
+      background: rgba(30, 58, 95, .52);
+      transform: translateY(-1px);
+    }
+
+    .email-row.unread .subject, .email-row.unread .sender {
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .initials {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(20, 184, 166, .16);
+      border: 1px solid rgba(20, 184, 166, .32);
+      color: #99f6e4;
+      font-weight: 800;
+    }
+
+    .email-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .sender, .subject {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sender { font-size: 14px; color: #dbeafe; }
+    .subject { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .time { color: var(--muted-2); font-size: 12px; flex: 0 0 auto; }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      border: 1px solid transparent;
+    }
+
+    .priority-critical { background: rgba(239, 68, 68, .14); color: #fecaca; border-color: rgba(239, 68, 68, .34); }
+    .priority-high { background: rgba(245, 158, 11, .15); color: #fde68a; border-color: rgba(245, 158, 11, .34); }
+    .priority-normal { background: rgba(59, 130, 246, .15); color: #bfdbfe; border-color: rgba(59, 130, 246, .34); }
+    .priority-low { background: rgba(148, 163, 184, .14); color: #cbd5e1; border-color: rgba(148, 163, 184, .22); }
+    .tag-OPS { background: rgba(20, 184, 166, .13); color: #99f6e4; border-color: rgba(20, 184, 166, .3); }
+    .tag-REG { background: rgba(168, 85, 247, .14); color: #e9d5ff; border-color: rgba(168, 85, 247, .3); }
+    .tag-ADM { background: rgba(148, 163, 184, .14); color: #cbd5e1; border-color: rgba(148, 163, 184, .22); }
+    .tag-CLI { background: rgba(34, 197, 94, .14); color: #bbf7d0; border-color: rgba(34, 197, 94, .28); }
+
+    .detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .detail-head h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .body-box {
+      padding: 16px;
+      min-height: 210px;
+      white-space: pre-wrap;
+      line-height: 1.58;
+      color: #dbeafe;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, .14);
+      background: rgba(2, 6, 23, .34);
+    }
+
+    .attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: rgba(59, 130, 246, .12);
+      color: #bfdbfe;
+      border: 1px solid rgba(59, 130, 246, .28);
+      font-size: 13px;
+    }
+
+    .pipeline {
+      display: none;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .pipeline.visible { display: grid; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(26, 34, 53, .7);
+      border: 1px solid rgba(148, 163, 184, .12);
+      color: var(--muted);
+    }
+
+    .step.active {
+      border-color: rgba(59, 130, 246, .5);
+      color: #fff;
+      background: rgba(59, 130, 246, .12);
+    }
+
+    .step.done {
+      border-color: rgba(16, 185, 129, .34);
+      color: #d1fae5;
+      background: rgba(16, 185, 129, .1);
+    }
+
+    .spinner {
+      width: 19px;
+      height: 19px;
+      border: 2px solid rgba(148, 163, 184, .24);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .check-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(16, 185, 129, .18);
+      color: #86efac;
+    }
+
+    .extracted-card {
+      display: none;
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(16, 185, 129, .32);
+      background: rgba(16, 185, 129, .09);
+    }
+
+    .extracted-card.visible { display: block; }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(2, 6, 23, .28);
+      border: 1px solid rgba(148, 163, 184, .12);
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .field strong {
+      display: block;
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      padding: 16px;
+      border-radius: var(--radius);
+      background: rgba(17, 24, 39, .86);
+      border: 1px solid rgba(30, 58, 95, .75);
+    }
+
+    .kpi span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kpi strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid rgba(30, 58, 95, .82);
+    }
+
+    table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      background: rgba(17, 24, 39, .86);
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, .13);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      color: #bfdbfe;
+      font-weight: 800;
+      background: rgba(30, 58, 95, .38);
+    }
+
+    tr.highlight {
+      animation: pulseRow 1.8s ease 3;
+    }
+
+    @keyframes pulseRow {
+      0%, 100% { background: transparent; }
+      45% { background: rgba(59, 130, 246, .18); }
+    }
+
+    .status-signed { background: rgba(16, 185, 129, .15); color: #a7f3d0; border-color: rgba(16, 185, 129, .34); }
+    .status-progress { background: rgba(245, 158, 11, .15); color: #fde68a; border-color: rgba(245, 158, 11, .34); }
+    .status-pending { background: rgba(59, 130, 246, .15); color: #bfdbfe; border-color: rgba(59, 130, 246, .34); }
+    .status-validated { background: rgba(16, 185, 129, .15); color: #a7f3d0; border-color: rgba(16, 185, 129, .34); }
+
+    .phone-area {
+      display: grid;
+      place-items: center;
+      min-height: 760px;
+    }
+
+    .phone {
+      width: min(375px, calc(100vw - 52px));
+      min-height: 700px;
+      border-radius: 32px;
+      padding: 13px;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, .36);
+      box-shadow: 0 34px 90px rgba(0, 0, 0, .55);
+    }
+
+    .phone-screen {
+      min-height: 674px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+      border: 1px solid rgba(30, 58, 95, .7);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-header {
+      min-height: 76px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(59, 130, 246, .16);
+      border-bottom: 1px solid rgba(30, 58, 95, .74);
+    }
+
+    .phone-body {
+      flex: 1;
+      padding: 16px;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .pickup-card {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(26, 34, 53, .86);
+      border: 1px solid rgba(148, 163, 184, .12);
+    }
+
+    .pickup-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; }
+
+    .dictation {
+      display: none;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, .34);
+      background: rgba(59, 130, 246, .12);
+    }
+
+    .dictation.visible { display: block; }
+
+    .mic {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, .16);
+      color: #fecaca;
+      animation: micPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes micPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, .28); }
+      50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+    }
+
+    .photo-thumb {
+      height: 118px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #bfdbfe;
+      background:
+        linear-gradient(135deg, rgba(59, 130, 246, .2), rgba(20, 184, 166, .12)),
+        repeating-linear-gradient(45deg, rgba(148, 163, 184, .08) 0 10px, transparent 10px 20px);
+      border: 1px dashed rgba(96, 165, 250, .45);
+    }
+
+    .signature {
+      height: 150px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .signature svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .signature path {
+      stroke-dasharray: 420;
+      stroke-dashoffset: 420;
+      animation: drawSig 1.2s ease forwards;
+      animation-delay: .4s;
+    }
+
+    @keyframes drawSig { to { stroke-dashoffset: 0; } }
+
+    .complete {
+      display: grid;
+      place-items: center;
+      min-height: 470px;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .big-check {
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, .16);
+      color: #86efac;
+      border: 1px solid rgba(16, 185, 129, .35);
+    }
+
+    .drop-zone {
+      min-height: 190px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 22px;
+      border-radius: var(--radius);
+      border: 1px dashed rgba(96, 165, 250, .5);
+      background: rgba(59, 130, 246, .08);
+    }
+
+    .progress-line {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .progress-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 140px;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .14);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      transition: width .7s ease;
+    }
+
+    .excel-preview {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid rgba(16, 185, 129, .25);
+      background: rgba(240, 253, 244, .03);
+    }
+
+    .excel-ribbon {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(16, 185, 129, .13);
+      color: #d1fae5;
+      border-bottom: 1px solid rgba(16, 185, 129, .22);
+    }
+
+    .excel-grid {
+      overflow-x: auto;
+    }
+
+    .excel-grid table {
+      min-width: 1000px;
+      background: rgba(2, 6, 23, .25);
+    }
+
+    .excel-grid th {
+      background: rgba(22, 101, 52, .34);
+      color: #dcfce7;
+    }
+
+    .excel-grid td:first-child,
+    .excel-grid th:first-child {
+      width: 48px;
+      text-align: center;
+      color: #86efac;
+    }
+
+    .portal-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(420px, 1.05fr);
+      gap: 16px;
+    }
+
+    .portal-browser {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, .24);
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 650px;
+    }
+
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: #e2e8f0;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
+    .dot:nth-child(2) { background: #f59e0b; }
+    .dot:nth-child(3) { background: #22c55e; }
+
+    .url {
+      flex: 1;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: #fff;
+      color: #475569;
+      font-size: 12px;
+    }
+
+    .portal-page {
+      padding: 22px;
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+      min-height: 600px;
+    }
+
+    .teleport-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #dbeafe;
+    }
+
+    .teleport-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #075985;
+    }
+
+    .portal-form {
+      margin-top: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .portal-field {
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #dbeafe;
+      min-height: 52px;
+    }
+
+    .portal-field label {
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .portal-value {
+      color: #0f172a;
+      min-height: 22px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid transparent;
+      overflow-wrap: anywhere;
+    }
+
+    .portal-value.typing {
+      border-bottom-color: #0284c7;
+    }
+
+    .portal-log {
+      display: grid;
+      gap: 10px;
+    }
+
+    .log-item {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(26, 34, 53, .82);
+      border: 1px solid rgba(148, 163, 184, .12);
+      color: var(--muted);
+    }
+
+    .log-item.active {
+      color: #fff;
+      border-color: rgba(59, 130, 246, .45);
+      background: rgba(59, 130, 246, .12);
+    }
+
+    .log-item.done {
+      color: #d1fae5;
+      border-color: rgba(16, 185, 129, .34);
+      background: rgba(16, 185, 129, .1);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, .72);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-backdrop.visible { display: grid; }
+
+    .modal {
+      width: min(780px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      border-radius: 16px;
+      background: #f8fafc;
+      color: #0f172a;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .55);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 22px;
+      border-bottom: 1px solid #dbeafe;
+    }
+
+    .modal-body { padding: 22px; }
+
+    .alb-preview {
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .alb-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px;
+      color: #fff;
+      background: #0f172a;
+    }
+
+    .alb-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .alb-field {
+      padding: 12px;
+      border-radius: 8px;
+      background: #f1f5f9;
+    }
+
+    .alb-field span {
+      display: block;
+      margin-bottom: 5px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 90;
+      display: grid;
+      gap: 8px;
+      width: min(390px, calc(100vw - 36px));
+    }
+
+    .toast-msg {
+      padding: 14px 16px;
+      border-radius: 12px;
+      color: #d1fae5;
+      background: rgba(6, 78, 59, .96);
+      border: 1px solid rgba(16, 185, 129, .38);
+      box-shadow: var(--shadow);
+      animation: toastIn .24s ease both;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toggle-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 10px;
+      background: rgba(26, 34, 53, .75);
+      border: 1px solid rgba(148, 163, 184, .12);
+    }
+
+    .switch {
+      width: 48px;
+      height: 26px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, .35);
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 20px;
+      margin-left: 22px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    @media (max-width: 1120px) {
+      .hero, .two-col, .portal-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-status {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .top-nav {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+      }
+
+      .brand { min-width: 0; }
+
+      main {
+        width: min(100vw - 24px, 1440px);
+        padding-top: 18px;
+      }
+
+      .demo-status, .kpi-grid, .three-col, .field-grid, .alb-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .portal-field {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .demo-status, .kpi-grid, .field-grid, .alb-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card-header, .detail-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="harbor-bg"></div>
+    <div class="harbor-scene" aria-hidden="true">
+      <div class="crane one"></div>
+      <div class="crane two"></div>
+      <div class="crane three"></div>
+      <div class="ship"></div>
+      <div class="water"></div>
+    </div>
+
+    <nav class="top-nav">
+      <div class="brand">
+        <div class="brand-mark">GLR</div>
+        <div>
+          <strong>Operaciones Portuarias</strong>
+          <span>Puerto de Algeciras · Demo comercial</span>
+        </div>
+      </div>
+      <div class="nav-tabs" id="navTabs"></div>
+      <div class="avatar">OM</div>
+    </nav>
+
+    <main>
+      <header class="hero">
+        <div>
+          <div class="eyebrow"><i data-lucide="anchor"></i> Flujo end-to-end simulado</div>
+          <h1>Del correo operativo al portal Teleport en una sola demo.</h1>
+          <p class="subtitle">Bandeja inteligente, albarán digital, app de operario, extracción MARPOL, Excel auditable y carga simulada al portal. Todos los datos son ficticios y no se realiza ningún envío externo.</p>
+        </div>
+        <div class="demo-status">
+          <div class="status-chip"><strong id="statEmails">6</strong><span>Correos MARPOL</span></div>
+          <div class="status-chip"><strong id="statM3">192</strong><span>m³ gestionados</span></div>
+          <div class="status-chip"><strong>1</strong><span>Excel descargable</span></div>
+          <div class="status-chip"><strong>0</strong><span>APIs reales</span></div>
+        </div>
+      </header>
+
+      <section class="section active" id="section-inbox"></section>
+      <section class="section" id="section-albaranes"></section>
+      <section class="section" id="section-mobile"></section>
+      <section class="section" id="section-marpol"></section>
+      <section class="section" id="section-teleport"></section>
+      <section class="section" id="section-config"></section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const MOCK_EMAILS = [
+      {
+        id: "EMAIL-001",
+        from: "ops@agunsa.cl",
+        fromName: "Agunsa Operaciones",
+        subject: "Solicitud recogida residuos MARPOL - MV SANTA ISABEL",
+        date: "2025-06-10T08:14:00",
+        tag: "OPS",
+        priority: "CRÍTICO",
+        urgency: 95,
+        body: "Estimados,\n\nSolicitamos servicio de recogida de residuos MARPOL para el buque MV SANTA ISABEL, IMO 9876543, actualmente atracado en Muelle Norte 7 del Puerto de Algeciras.\n\nTipo residuo: Aguas oleosas (bilge water)\nCantidad estimada: 45 m³\nFecha solicitada: 11/06/2025 - 06:00 hrs\n\nAdjunto certificado MARPOL en PDF.\n\nSaludos,\nDpto. Operaciones - Agunsa",
+        attachments: ["Certificado_MARPOL_SANTA_ISABEL.pdf"],
+        extracted: {
+          vessel: "MV SANTA ISABEL",
+          imo: "IMO 9876543",
+          dock: "Muelle Norte 7",
+          wasteType: "Aguas Oleosas (Bilge Water)",
+          quantity: 45,
+          date: "11/06/2025",
+          client: "Agunsa Operaciones",
+          certificate: "MARP-2025-0611-001"
+        }
+      },
+      {
+        id: "EMAIL-002",
+        from: "fleet@mscship.com",
+        fromName: "MSC Fleet Management",
+        subject: "URGENT - MARPOL Annex I - MSC AURORA - Berth 12",
+        date: "2025-06-10T09:32:00",
+        tag: "OPS",
+        priority: "ALTO",
+        urgency: 82,
+        body: "GLR Team,\n\nWe require waste collection for MSC AURORA, IMO 7654321, berthed at South Pier 12.\n\nWaste: Sludge oil (HFO residue)\nEstimated volume: 28 m³\nRequested window: 11 June AM\n\nMARPOL Form B attached.\n\nBest regards,\nMSC Fleet Management",
+        attachments: ["MARPOL_Form_B_AURORA.pdf"],
+        extracted: {
+          vessel: "MSC AURORA",
+          imo: "IMO 7654321",
+          dock: "South Pier 12",
+          wasteType: "Sludge Oil (HFO Residue)",
+          quantity: 28,
+          date: "11/06/2025",
+          client: "MSC Fleet Management",
+          certificate: "MARP-2025-0611-002"
+        }
+      },
+      {
+        id: "EMAIL-003",
+        from: "portops@maersk.com",
+        fromName: "Maersk Logistics",
+        subject: "Recogida aguas sucias - MAERSK HORIZON - Dársena Sur",
+        date: "2025-06-10T10:05:00",
+        tag: "REG",
+        priority: "NORMAL",
+        urgency: 60,
+        body: "Hola equipo GLR,\n\nNecesitamos recogida de aguas negras y grises del buque MAERSK HORIZON, IMO 8812345, en Dársena Sur Muelle 3.\n\nVolumen estimado: 18 m³\nNormativa aplicable: MARPOL Anexo IV\nFecha propuesta: 12/06/2025\n\nDocumentación adjunta.\n\nGracias,\nOperaciones Maersk Algeciras",
+        attachments: ["MARPOL_AnexoIV_HORIZON.pdf"],
+        extracted: {
+          vessel: "MAERSK HORIZON",
+          imo: "IMO 8812345",
+          dock: "Dársena Sur - Muelle 3",
+          wasteType: "Aguas Negras y Grises (Anexo IV)",
+          quantity: 18,
+          date: "12/06/2025",
+          client: "Maersk Logistics",
+          certificate: "MARP-2025-0612-003"
+        }
+      },
+      {
+        id: "EMAIL-004",
+        from: "portcalls@cmacgm.com",
+        fromName: "CMA CGM Port Operations",
+        subject: "Waste notification - CMA CGM TIGRIS - Terminal Norte",
+        date: "2025-06-10T11:20:00",
+        tag: "OPS",
+        priority: "ALTO",
+        urgency: 78,
+        body: "Dear GLR,\n\nWaste collection required for CMA CGM TIGRIS, IMO 9923456, currently at Terminal Norte Berth 5.\n\nAnnex I: Bilge water - 35 m³\nAnnex V: Food waste - 2 m³\nRequested: 11 June 14:00 hrs\n\nAttached: combined MARPOL declaration.\n\nKind regards,\nCMA CGM Port Operations",
+        attachments: ["MARPOL_Combined_TIGRIS.pdf"],
+        extracted: {
+          vessel: "CMA CGM TIGRIS",
+          imo: "IMO 9923456",
+          dock: "Terminal Norte - Berth 5",
+          wasteType: "Bilge Water + Residuos Alimentarios",
+          quantity: 37,
+          date: "11/06/2025",
+          client: "CMA CGM Port Operations",
+          certificate: "MARP-2025-0611-004"
+        }
+      },
+      {
+        id: "EMAIL-005",
+        from: "compliance@hapag-lloyd.com",
+        fromName: "Hapag-Lloyd Compliance",
+        subject: "Solicitud urgente - HELENA EXPRESS - IMO 6634521",
+        date: "2025-06-10T13:45:00",
+        tag: "REG",
+        priority: "CRÍTICO",
+        urgency: 91,
+        body: "GLR Servicios,\n\nAlerta de cumplimiento MARPOL: el buque HELENA EXPRESS, IMO 6634521, debe descargar residuos antes de las 18:00 del día 11 de junio por orden de la Autoridad Portuaria.\n\nTipo: Aceites usados de maquinaria\nCantidad: 52 m³\nMuelle: Terminal Este - Atraque 2\n\nSe adjunta notificación de la Autoridad Portuaria y formulario MARPOL.\n\nRespuesta urgente requerida.\n\nHapag-Lloyd Compliance",
+        attachments: ["Notificacion_AP_HELENA.pdf", "MARPOL_HELENA_EXPRESS.pdf"],
+        extracted: {
+          vessel: "HELENA EXPRESS",
+          imo: "IMO 6634521",
+          dock: "Terminal Este - Atraque 2",
+          wasteType: "Aceites Usados de Maquinaria",
+          quantity: 52,
+          date: "11/06/2025",
+          client: "Hapag-Lloyd Compliance",
+          certificate: "MARP-2025-0611-005"
+        }
+      },
+      {
+        id: "EMAIL-006",
+        from: "admin@evergreen-line.com",
+        fromName: "Evergreen Line",
+        subject: "MARPOL Annex II - EVER GIVEN STAR - Muelle 9",
+        date: "2025-06-10T15:10:00",
+        tag: "ADM",
+        priority: "BAJO",
+        urgency: 35,
+        body: "Estimado equipo,\n\nRemitimos solicitud estándar de recogida de residuos de carga líquida a granel del buque EVER GIVEN STAR, IMO 5521987, en Muelle 9.\n\nAnexo II: Residuos de NLS (Noxious Liquid Substances)\nCantidad: 12 m³\nFecha: 13/06/2025\n\nDocumentación adjunta según normativa.\n\nEvergreen Line - Operaciones Algeciras",
+        attachments: ["MARPOL_AnexoII_EVER_GIVEN.pdf"],
+        extracted: {
+          vessel: "EVER GIVEN STAR",
+          imo: "IMO 5521987",
+          dock: "Muelle 9",
+          wasteType: "NLS - Sustancias Líquidas Nocivas (Anexo II)",
+          quantity: 12,
+          date: "13/06/2025",
+          client: "Evergreen Line",
+          certificate: "MARP-2025-0613-006"
+        }
+      }
+    ];
+
+    const NAV_ITEMS = [
+      ["inbox", "Bandeja Inteligente", "inbox"],
+      ["albaranes", "Albaranes", "file-text"],
+      ["mobile", "App Operario", "smartphone"],
+      ["marpol", "MARPOL + Excel", "sheet"],
+      ["teleport", "Portal Teleport", "send"],
+      ["config", "Configuración", "settings"]
+    ];
+
+    const state = {
+      activeTab: "inbox",
+      selectedEmailId: "EMAIL-001",
+      read: new Set(),
+      filterPriority: "Todos",
+      filterTag: "Todos",
+      analysisDone: new Set(),
+      createdFromInbox: false,
+      mobileScreen: "list",
+      currentPickupId: "ALB-2025-002",
+      dictationDone: false,
+      marpolLoaded: false,
+      teleportDone: false,
+      albaranes: [
+        { id: "ALB-2025-001", emailId: "EMAIL-001", date: "11/06", vessel: "MV SANTA ISABEL", waste: "Aguas Oleosas", quantity: 45, status: "Firmado", driver: "Carlos Méndez" },
+        { id: "ALB-2025-002", emailId: "EMAIL-002", date: "11/06", vessel: "MSC AURORA", waste: "Sludge Oil", quantity: 28, status: "En Curso", driver: "Carlos Méndez" },
+        { id: "ALB-2025-003", emailId: "EMAIL-003", date: "12/06", vessel: "MAERSK HORIZON", waste: "Aguas Negras", quantity: 18, status: "Pendiente", driver: "Lucía Navarro" },
+        { id: "ALB-2025-004", emailId: "EMAIL-004", date: "11/06", vessel: "CMA CGM TIGRIS", waste: "Bilge + Residuos", quantity: 37, status: "Pendiente", driver: "Rafael Torres" },
+        { id: "ALB-2025-005", emailId: "EMAIL-005", date: "11/06", vessel: "HELENA EXPRESS", waste: "Aceites Usados", quantity: 52, status: "En Curso", driver: "María Vázquez" },
+        { id: "ALB-2025-006", emailId: "EMAIL-006", date: "13/06", vessel: "EVER GIVEN STAR", waste: "NLS Líquidas", quantity: 12, status: "Pendiente", driver: "Pablo Rivas" }
+      ]
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function priorityClass(priority) {
+      return {
+        "CRÍTICO": "priority-critical",
+        "ALTO": "priority-high",
+        "NORMAL": "priority-normal",
+        "BAJO": "priority-low"
+      }[priority] || "priority-normal";
+    }
+
+    function statusClass(status) {
+      return {
+        "Firmado": "status-signed",
+        "En Curso": "status-progress",
+        "Pendiente": "status-pending",
+        "Validado": "status-validated"
+      }[status] || "status-pending";
+    }
+
+    function initials(name) {
+      return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+    }
+
+    function formatTime(iso) {
+      return new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+    }
+
+    function toast(message) {
+      const box = $("#toast");
+      const item = document.createElement("div");
+      item.className = "toast-msg";
+      item.textContent = message;
+      box.appendChild(item);
+      setTimeout(() => item.remove(), 3600);
+    }
+
+    function icon(name, size = 18) {
+      return `<i data-lucide="${name}" style="width:${size}px;height:${size}px"></i>`;
+    }
+
+    function renderNav() {
+      $("#navTabs").innerHTML = NAV_ITEMS.map(([id, label, iconName]) => `
+        <button class="nav-btn ${state.activeTab === id ? "active" : ""}" data-tab="${id}">
+          ${icon(iconName, 17)}<span>${label}</span>
+        </button>
+      `).join("");
+      $$(".nav-btn").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+    }
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      $$(".section").forEach((section) => section.classList.remove("active"));
+      $(`#section-${tab}`).classList.add("active");
+      renderNav();
+      if (tab === "albaranes") renderAlbaranes();
+      if (tab === "mobile") renderMobile();
+      if (tab === "marpol") renderMarpol();
+      if (tab === "teleport") renderTeleport();
+      refreshIcons();
+    }
+
+    function renderInbox() {
+      const priorities = ["Todos", "Crítico", "Alto", "Normal", "Bajo"];
+      const tags = ["Todos", "OPS", "REG", "ADM", "CLI", "BOL"];
+      $("#section-inbox").innerHTML = `
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${icon("inbox")} Bandeja inteligente <small>${MOCK_EMAILS.length} solicitudes</small></div>
+            </div>
+            <div class="card-body">
+              <div class="filter-row">
+                ${priorities.map((p) => `<button class="filter-btn ${state.filterPriority === p ? "active" : ""}" data-priority="${p}">${p} <strong>${countPriority(p)}</strong></button>`).join("")}
+              </div>
+              <div class="pill-row">
+                ${tags.map((t) => `<button class="pill ${state.filterTag === t ? "active" : ""}" data-tag="${t}">${t} <strong>${countTag(t)}</strong></button>`).join("")}
+              </div>
+              <div class="email-list" id="emailList"></div>
+            </div>
+          </div>
+          <div class="card" id="emailDetail"></div>
+        </div>
+      `;
+      $$(".filter-btn").forEach((btn) => btn.addEventListener("click", () => {
+        state.filterPriority = btn.dataset.priority;
+        renderInbox();
+      }));
+      $$(".pill").forEach((btn) => btn.addEventListener("click", () => {
+        state.filterTag = btn.dataset.tag;
+        renderInbox();
+      }));
+      renderEmailList();
+      renderEmailDetail();
+    }
+
+    function countPriority(label) {
+      if (label === "Todos") return MOCK_EMAILS.length;
+      return MOCK_EMAILS.filter((email) => email.priority.toLowerCase() === label.toLowerCase()).length;
+    }
+
+    function countTag(tag) {
+      if (tag === "Todos") return MOCK_EMAILS.length;
+      return MOCK_EMAILS.filter((email) => email.tag === tag).length;
+    }
+
+    function filteredEmails() {
+      return MOCK_EMAILS.filter((email) => {
+        const priorityOk = state.filterPriority === "Todos" || email.priority.toLowerCase() === state.filterPriority.toLowerCase();
+        const tagOk = state.filterTag === "Todos" || email.tag === state.filterTag;
+        return priorityOk && tagOk;
+      });
+    }
+
+    function renderEmailList() {
+      $("#emailList").innerHTML = filteredEmails().map((email) => `
+        <article class="email-row ${state.selectedEmailId === email.id ? "active" : ""} ${state.read.has(email.id) ? "" : "unread"}" data-email="${email.id}">
+          <div class="initials">${initials(email.fromName)}</div>
+          <div>
+            <div class="email-meta">
+              <div class="sender">${email.fromName}</div>
+              <div class="time">${formatTime(email.date)}</div>
+            </div>
+            <div class="subject">${email.subject}</div>
+            <div class="badges">
+              <span class="badge ${priorityClass(email.priority)}">${email.priority}</span>
+              <span class="badge tag-${email.tag}">${email.tag}</span>
+              <span class="badge priority-normal">${email.urgency}% urgencia</span>
+            </div>
+          </div>
+        </article>
+      `).join("");
+      $$(".email-row").forEach((row) => row.addEventListener("click", () => {
+        state.selectedEmailId = row.dataset.email;
+        state.read.add(row.dataset.email);
+        renderInbox();
+      }));
+    }
+
+    function renderEmailDetail() {
+      const email = MOCK_EMAILS.find((item) => item.id === state.selectedEmailId) || MOCK_EMAILS[0];
+      const done = state.analysisDone.has(email.id);
+      $("#emailDetail").innerHTML = `
+        <div class="card-header">
+          <div class="card-title">${icon("mail-open")} Detalle del correo</div>
+          <span class="badge ${priorityClass(email.priority)}">${email.priority}</span>
+        </div>
+        <div class="card-body">
+          <div class="detail-head">
+            <div>
+              <h2>${email.subject}</h2>
+              <div class="muted">${email.fromName} · ${email.from} · ${formatTime(email.date)}</div>
+            </div>
+            <button class="btn primary" id="analyzeBtn">${icon("sparkles")} Analizar con IA</button>
+          </div>
+          <div class="body-box">${email.body}</div>
+          <div class="attachments">
+            ${email.attachments.map((file) => `<span class="attachment">${icon("paperclip", 15)} ${file}</span>`).join("")}
+          </div>
+          <div class="pipeline ${done ? "visible" : ""}" id="aiPipeline">
+            ${pipelineSteps(email).map((step, index) => `<div class="step ${done ? "done" : ""}" data-step="${index}">
+              <div class="step-icon">${done ? `<span class="check-dot">${icon("check", 14)}</span>` : `<span class="spinner"></span>`}</div>
+              <div><strong>${step.title}</strong><br><span class="tiny">${step.detail}</span></div>
+              <span class="tiny">${done ? "OK" : "IA"}</span>
+            </div>`).join("")}
+          </div>
+          <div class="extracted-card ${done ? "visible" : ""}" id="extractedCard">
+            <div class="card-title" style="margin-bottom:12px">${icon("database")} Datos extraídos y listos para albarán</div>
+            ${fieldGrid(email.extracted)}
+            <div style="margin-top:14px">
+              <button class="btn success" id="createAlbBtn">${icon("file-plus")} Crear Albarán Digital</button>
+            </div>
+          </div>
+        </div>
+      `;
+      $("#analyzeBtn").addEventListener("click", () => runAiAnalysis(email.id));
+      const createBtn = $("#createAlbBtn");
+      if (createBtn) createBtn.addEventListener("click", createAlbaranFromInbox);
+      refreshIcons();
+    }
+
+    function pipelineSteps(email) {
+      return [
+        { title: "Paso 1: Leyendo texto del correo", detail: "Texto capturado desde " + email.fromName },
+        { title: "Paso 2: Detectando adjuntos PDF", detail: email.attachments.length + " certificado MARPOL detectado" },
+        { title: "Paso 3: Extrayendo datos del buque", detail: "IMO, muelle, residuo y volumen extraídos" },
+        { title: "Paso 4: Clasificando urgencia", detail: "Urgencia: " + email.priority + " - acción recomendada" }
+      ];
+    }
+
+    function runAiAnalysis(emailId) {
+      const email = MOCK_EMAILS.find((item) => item.id === emailId);
+      const pipeline = $("#aiPipeline");
+      const card = $("#extractedCard");
+      pipeline.classList.add("visible");
+      card.classList.remove("visible");
+      $$("#aiPipeline .step").forEach((step) => {
+        step.className = "step";
+        step.querySelector(".step-icon").innerHTML = '<span class="spinner"></span>';
+      });
+      pipelineSteps(email).forEach((_, index) => {
+        setTimeout(() => {
+          const step = $(`#aiPipeline .step[data-step="${index}"]`);
+          step.classList.add("active");
+        }, index * 1000);
+        setTimeout(() => {
+          const step = $(`#aiPipeline .step[data-step="${index}"]`);
+          step.classList.remove("active");
+          step.classList.add("done");
+          step.querySelector(".step-icon").innerHTML = `<span class="check-dot">${icon("check", 14)}</span>`;
+          refreshIcons();
+          if (index === 3) {
+            state.analysisDone.add(emailId);
+            card.classList.add("visible");
+            toast("IA completó extracción: buque, IMO, muelle, residuo y volumen listos.");
+          }
+        }, index * 1000 + 850);
+      });
+    }
+
+    function fieldGrid(data) {
+      const rows = [
+        ["Buque", data.vessel],
+        ["Número IMO", data.imo],
+        ["Muelle", data.dock],
+        ["Tipo de residuo", data.wasteType],
+        ["Cantidad estimada", data.quantity + " m³"],
+        ["Fecha servicio", data.date],
+        ["Cliente", data.client],
+        ["Certificado", data.certificate]
+      ];
+      return `<div class="field-grid">${rows.map(([label, value]) => `<div class="field"><label>${label}</label><strong>${value}</strong></div>`).join("")}</div>`;
+    }
+
+    function createAlbaranFromInbox() {
+      state.createdFromInbox = true;
+      toast("Albarán digital creado y resaltado en la bandeja de operaciones.");
+      switchTab("albaranes");
+      setTimeout(() => {
+        const row = $("#row-ALB-2025-001");
+        if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    }
+
+    function renderAlbaranes() {
+      const total = state.albaranes.length;
+      const signed = state.albaranes.filter((a) => a.status === "Firmado").length;
+      const pending = state.albaranes.filter((a) => a.status === "Pendiente").length;
+      const progress = state.albaranes.filter((a) => a.status === "En Curso").length;
+      $("#section-albaranes").innerHTML = `
+        <div class="kpi-grid">
+          <div class="kpi"><span>Total hoy</span><strong>${total}</strong></div>
+          <div class="kpi"><span>Firmados</span><strong>${signed}</strong></div>
+          <div class="kpi"><span>Pendientes</span><strong>${pending}</strong></div>
+          <div class="kpi"><span>En curso</span><strong>${progress}</strong></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">${icon("file-text")} Albaranes digitales <small>generados desde correo y PDF</small></div>
+            <button class="btn" onclick="toast('Vista de auditoría preparada para responsable GLR.')">${icon("shield-check")} Auditoría</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th># Albarán</th><th>Fecha</th><th>Buque</th><th>Residuo</th><th>Cant. m³</th><th>Estado</th><th>Conductor</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${state.albaranes.map((alb) => `
+                  <tr id="row-${alb.id}" class="${state.createdFromInbox && alb.id === "ALB-2025-001" ? "highlight" : ""}">
+                    <td><strong>${alb.id}</strong></td>
+                    <td>${alb.date}</td>
+                    <td>${alb.vessel}</td>
+                    <td>${alb.waste}</td>
+                    <td>${alb.quantity}</td>
+                    <td><span class="badge ${statusClass(alb.status)}">${alb.status}</span></td>
+                    <td>${alb.driver}</td>
+                    <td>
+                      <button class="btn small" data-view="${alb.id}">${icon("eye", 14)} Ver</button>
+                      <button class="btn small success" data-send="${alb.id}">${icon("smartphone", 14)} Enviar App</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      $$("[data-view]").forEach((btn) => btn.addEventListener("click", () => openAlbaran(btn.dataset.view)));
+      $$("[data-send]").forEach((btn) => btn.addEventListener("click", () => sendToApp(btn.dataset.send)));
+      refreshIcons();
+    }
+
+    function sendToApp(id) {
+      const alb = state.albaranes.find((item) => item.id === id);
+      alb.status = "En Curso";
+      state.currentPickupId = id;
+      toast("Albarán enviado al conductor - App notificada.");
+      renderAlbaranes();
+    }
+
+    function openAlbaran(id) {
+      const alb = state.albaranes.find((item) => item.id === id);
+      const email = MOCK_EMAILS.find((item) => item.id === alb.emailId);
+      $("#modalBackdrop").innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <strong>Vista previa del albarán oficial</strong>
+            <button class="btn small" id="closeModal">${icon("x", 14)} Cerrar</button>
+          </div>
+          <div class="modal-body">
+            <div class="alb-preview">
+              <div class="alb-head">
+                <div><strong style="font-size:22px">GLR</strong><br><span>Servicios MARPOL · Puerto de Algeciras</span></div>
+                <div><strong>${alb.id}</strong><br><span>${email.extracted.date}</span></div>
+              </div>
+              <div class="alb-grid">
+                <div class="alb-field"><span>Buque</span><strong>${email.extracted.vessel}</strong></div>
+                <div class="alb-field"><span>Número IMO</span><strong>${email.extracted.imo}</strong></div>
+                <div class="alb-field"><span>Muelle</span><strong>${email.extracted.dock}</strong></div>
+                <div class="alb-field"><span>Cliente</span><strong>${email.extracted.client}</strong></div>
+                <div class="alb-field"><span>Tipo residuo</span><strong>${email.extracted.wasteType}</strong></div>
+                <div class="alb-field"><span>Cantidad estimada</span><strong>${email.extracted.quantity} m³</strong></div>
+                <div class="alb-field"><span>Conductor asignado</span><strong>${alb.driver}</strong></div>
+                <div class="alb-field"><span>Firma transportista</span><strong>Pendiente en app móvil</strong></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
+              <button class="btn" id="downloadPdf">${icon("download", 14)} Descargar PDF Oficial</button>
+              <button class="btn primary" id="modalSend">${icon("smartphone", 14)} Enviar App</button>
+            </div>
+          </div>
+        </div>
+      `;
+      $("#modalBackdrop").classList.add("visible");
+      $("#closeModal").addEventListener("click", closeModal);
+      $("#modalSend").addEventListener("click", () => {
+        sendToApp(id);
+        closeModal();
+      });
+      $("#downloadPdf").addEventListener("click", () => downloadTextFile(`${alb.id}.pdf`, `GLR - ${alb.id}\nBuque: ${email.extracted.vessel}\nIMO: ${email.extracted.imo}\nResiduo: ${email.extracted.wasteType}\nCantidad: ${email.extracted.quantity} m3\nDocumento mock para demo comercial.`));
+      refreshIcons();
+    }
+
+    function closeModal() {
+      $("#modalBackdrop").classList.remove("visible");
+      $("#modalBackdrop").innerHTML = "";
+    }
+
+    function renderMobile() {
+      $("#section-mobile").innerHTML = `
+        <div class="phone-area">
+          <div class="phone">
+            <div class="phone-screen">
+              <div class="phone-header">
+                <div><strong>GLR</strong><br><span class="tiny muted">App Operario</span></div>
+                <span class="badge status-progress">Online</span>
+              </div>
+              <div class="phone-body" id="phoneBody"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      renderPhoneScreen();
+    }
+
+    function renderPhoneScreen() {
+      const body = $("#phoneBody");
+      const progressItems = state.albaranes.filter((a) => a.status === "En Curso");
+      const current = state.albaranes.find((a) => a.id === state.currentPickupId) || progressItems[0];
+      if (state.mobileScreen === "list") {
+        body.innerHTML = `
+          <div>
+            <h2 style="margin:0 0 4px;font-size:22px">Mis Recogidas</h2>
+            <div class="muted tiny">Servicios asignados para turno mañana</div>
+          </div>
+          ${progressItems.map((alb) => `
+            <div class="pickup-card">
+              <h3>${alb.vessel}</h3>
+              <div class="muted tiny">${alb.id} · ${alb.waste} · ${alb.quantity} m³</div>
+              <div class="muted tiny" style="margin:6px 0 12px">${emailByAlb(alb).extracted.dock}</div>
+              <button class="btn primary" data-start="${alb.id}" style="width:100%">${icon("play", 15)} Iniciar Recogida</button>
+            </div>
+          `).join("")}
+        `;
+        $$("[data-start]").forEach((btn) => btn.addEventListener("click", () => {
+          state.currentPickupId = btn.dataset.start;
+          state.mobileScreen = "materials";
+          state.dictationDone = false;
+          renderPhoneScreen();
+        }));
+      }
+      if (state.mobileScreen === "materials") {
+        body.innerHTML = `
+          <div>
+            <h2 style="margin:0 0 4px;font-size:21px">Registro de Materiales</h2>
+            <div class="muted tiny">${current.id} · ${current.vessel}</div>
+          </div>
+          <div class="pickup-card">
+            <strong>Materiales cargados</strong>
+            <div class="field-grid" style="grid-template-columns:1fr;margin-top:10px">
+              <div class="field"><label>Residuo</label><strong>${emailByAlb(current).extracted.wasteType}</strong></div>
+              <div class="field"><label>Cantidad planificada</label><strong>${current.quantity} m³</strong></div>
+            </div>
+          </div>
+          <button class="btn primary" id="dictationBtn">${icon("mic", 15)} Dictado por voz IA</button>
+          <div class="dictation ${state.dictationDone ? "visible" : ""}" id="dictationBox">
+            ${state.dictationDone ? dictationResult(current) : `<div class="mic">${icon("mic", 26)}</div><div class="muted" style="text-align:center">Escuchando confirmación del operario...</div>`}
+          </div>
+          <div class="photo-thumb">${icon("image", 22)} residuos_evidence.jpg</div>
+          <button class="btn success" id="goSignature">${icon("pen-line", 15)} Continuar a Firma</button>
+        `;
+        $("#dictationBtn").addEventListener("click", () => {
+          $("#dictationBox").classList.add("visible");
+          setTimeout(() => {
+            state.dictationDone = true;
+            renderPhoneScreen();
+            toast("Dictado convertido en campos estructurados.");
+          }, 1700);
+        });
+        $("#goSignature").addEventListener("click", () => {
+          state.mobileScreen = "signature";
+          renderPhoneScreen();
+        });
+      }
+      if (state.mobileScreen === "signature") {
+        body.innerHTML = `
+          <div>
+            <h2 style="margin:0 0 4px;font-size:21px">Firma del Transportista</h2>
+            <div class="muted tiny">${current.id} · ${current.vessel}</div>
+          </div>
+          <div class="pickup-card">
+            <div class="field"><label>Cantidad real confirmada</label><strong>${current.quantity} m³</strong></div>
+            <div class="field" style="margin-top:10px"><label>Nombre transportista</label><strong>Carlos Méndez - Transportes Algeciras S.L.</strong></div>
+          </div>
+          <div class="signature">
+            <svg viewBox="0 0 320 140" preserveAspectRatio="none">
+              <path d="M28 88 C70 35, 93 126, 134 72 S196 86, 220 55 S260 82, 292 52" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <button class="btn primary" id="finishPickup">${icon("send", 15)} Firmar y Enviar</button>
+        `;
+        $("#finishPickup").addEventListener("click", () => {
+          $("#finishPickup").innerHTML = `${icon("loader", 15)} Enviando al sistema central...`;
+          refreshIcons();
+          setTimeout(() => {
+            current.status = "Firmado";
+            state.mobileScreen = "complete";
+            renderPhoneScreen();
+          }, 1400);
+        });
+      }
+      if (state.mobileScreen === "complete") {
+        body.innerHTML = `
+          <div class="complete">
+            <div class="big-check">${icon("check", 46)}</div>
+            <div>
+              <h2 style="margin:0 0 8px">Albarán completado</h2>
+              <p class="muted">${current.id} firmado y sincronizado.</p>
+            </div>
+            <div class="pickup-card" style="width:100%;text-align:left">
+              <div>${icon("mail-check", 15)} Copia enviada a ${emailByAlb(current).extracted.client}</div>
+              <div style="margin-top:8px">${icon("database", 15)} Documento guardado en sistema central</div>
+            </div>
+            <button class="btn" id="backHome">${icon("home", 15)} Volver al Inicio</button>
+          </div>
+        `;
+        $("#backHome").addEventListener("click", () => {
+          state.mobileScreen = "list";
+          renderPhoneScreen();
+        });
+      }
+      refreshIcons();
+    }
+
+    function dictationResult(alb) {
+      return `
+        <strong>Transcripción IA</strong>
+        <p style="margin:8px 0 12px">"${numberText(alb.quantity)} metros cúbicos de ${alb.waste.toLowerCase()}, carga completada a las 09:47."</p>
+        <div class="field-grid" style="grid-template-columns:1fr">
+          <div class="field"><label>Cantidad real</label><strong>${alb.quantity} m³</strong></div>
+          <div class="field"><label>Hora término</label><strong>09:47</strong></div>
+        </div>
+      `;
+    }
+
+    function numberText(number) {
+      return { 12: "Doce", 18: "Dieciocho", 28: "Veintiocho", 37: "Treinta y siete", 45: "Cuarenta y cinco", 52: "Cincuenta y dos" }[number] || String(number);
+    }
+
+    function emailByAlb(alb) {
+      return MOCK_EMAILS.find((email) => email.id === alb.emailId);
+    }
+
+    function renderMarpol() {
+      $("#section-marpol").innerHTML = `
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${icon("file-scan")} Extracción certificado MARPOL</div>
+            </div>
+            <div class="card-body">
+              <div class="drop-zone">
+                <div>
+                  <div style="font-size:38px;margin-bottom:8px">${icon("upload-cloud", 40)}</div>
+                  <strong>Arrastra certificado MARPOL o carga ejemplo</strong>
+                  <p class="muted">Simulación visual sin procesar archivos reales.</p>
+                  <button class="btn primary" id="loadMarpol">${icon("play", 15)} Cargar Ejemplo</button>
+                </div>
+              </div>
+              <div class="progress-line" id="marpolProgress"></div>
+              <div class="extracted-card ${state.marpolLoaded ? "visible" : ""}" id="marpolCard">
+                <div class="card-title" style="margin-bottom:12px">${icon("badge-check")} Certificado validado</div>
+                ${fieldGrid({ vessel: "MV SANTA ISABEL", imo: "IMO 9876543", dock: "Muelle Norte 7", wasteType: "Aguas Oleosas (Bilge Water)", quantity: 45, date: "11/06/2025", client: "Capitán A. Rodríguez", certificate: "MARP-2025-0611-001" })}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${icon("table")} Excel MARPOL <small>vista previa antes de descarga</small></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn success" id="downloadExcel">${icon("download", 15)} Descargar Excel</button>
+                <button class="btn primary" id="goTeleport">${icon("send", 15)} Simular Teleport</button>
+              </div>
+            </div>
+            <div class="card-body">
+              ${excelPreview()}
+            </div>
+          </div>
+        </div>
+      `;
+      $("#loadMarpol").addEventListener("click", runMarpolExtraction);
+      $("#downloadExcel").addEventListener("click", downloadExcel);
+      $("#goTeleport").addEventListener("click", () => switchTab("teleport"));
+      refreshIcons();
+    }
+
+    function runMarpolExtraction() {
+      const steps = [
+        ["Procesando PDF", "100%"],
+        ["Detectando campos MARPOL", "12 campos encontrados"],
+        ["Extrayendo con OCR + LLM", "Datos estructurados listos"],
+        ["Listo para validación", "Firma digital verificada"]
+      ];
+      $("#marpolProgress").innerHTML = steps.map((step, index) => `
+        <div class="progress-row">
+          <div>${step[0]}<br><span class="tiny muted">${step[1]}</span></div>
+          <div class="bar"><span id="bar-${index}"></span></div>
+        </div>
+      `).join("");
+      steps.forEach((_, index) => {
+        setTimeout(() => {
+          $(`#bar-${index}`).style.width = "100%";
+          if (index === steps.length - 1) {
+            state.marpolLoaded = true;
+            $("#marpolCard").classList.add("visible");
+            toast("Certificado MARPOL extraído y validado.");
+          }
+        }, index * 650 + 100);
+      });
+    }
+
+    function excelRows() {
+      return MOCK_EMAILS.map((email, index) => ({
+        "N°": index + 1,
+        "Buque": email.extracted.vessel,
+        "IMO": email.extracted.imo,
+        "Muelle": email.extracted.dock,
+        "Tipo Residuo": email.extracted.wasteType,
+        "Cantidad (m³)": email.extracted.quantity,
+        "Fecha": email.extracted.date,
+        "Cliente": email.extracted.client,
+        "Estado": "Validado",
+        "Certificado": email.extracted.certificate
+      }));
+    }
+
+    function excelPreview() {
+      const rows = excelRows();
+      const total = rows.reduce((sum, row) => sum + row["Cantidad (m³)"], 0);
+      return `
+        <div class="excel-preview">
+          <div class="excel-ribbon">
+            <strong>${icon("file-spreadsheet", 16)} GLR_MARPOL_Informe_2025-06-11.xlsx</strong>
+            <span>Total m³ = ${total}</span>
+          </div>
+          <div class="excel-grid">
+            <table>
+              <thead>
+                <tr>${Object.keys(rows[0]).map((key) => `<th>${key}</th>`).join("")}</tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `<tr>${Object.values(row).map((value) => `<td>${value === "Validado" ? `<span class="badge status-validated">Validado</span>` : value}</td>`).join("")}</tr>`).join("")}
+                <tr><td colspan="5"><strong>Total</strong></td><td><strong>${total}</strong></td><td colspan="4">m³ consolidados para reporte MARPOL</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadExcel() {
+      if (window.XLSX) {
+        const worksheet = XLSX.utils.json_to_sheet(excelRows());
+        XLSX.utils.sheet_add_aoa(worksheet, [["", "", "", "", "TOTAL", 192, "", "", "", ""]], { origin: -1 });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "MARPOL");
+        XLSX.writeFile(workbook, "GLR_MARPOL_Informe_2025-06-11.xlsx");
+        toast("Excel descargado con 6 registros y total de 192 m³.");
+      } else {
+        const csv = toCsv(excelRows());
+        downloadTextFile("GLR_MARPOL_Informe_2025-06-11.csv", csv);
+        toast("CSV descargado como respaldo local.");
+      }
+    }
+
+    function toCsv(rows) {
+      const headers = Object.keys(rows[0]);
+      return [headers.join(";")].concat(rows.map((row) => headers.map((header) => `"${String(row[header]).replaceAll('"', '""')}"`).join(";"))).join("\n");
+    }
+
+    function downloadTextFile(filename, content) {
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function renderTeleport() {
+      const selected = MOCK_EMAILS[0].extracted;
+      $("#section-teleport").innerHTML = `
+        <div class="portal-wrap">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${icon("route")} Simulación de ingreso a Teleport</div>
+              <button class="btn primary" id="runTeleport">${icon("play", 15)} Iniciar carga</button>
+            </div>
+            <div class="card-body">
+              <div class="portal-log" id="portalLog">
+                ${teleportSteps().map((step, index) => `<div class="log-item ${state.teleportDone ? "done" : ""}" data-log="${index}"><div>${state.teleportDone ? icon("check", 16) : icon("circle", 16)}</div><div><strong>${step.title}</strong><br><span class="tiny">${step.detail}</span></div></div>`).join("")}
+              </div>
+              <div class="extracted-card visible" style="margin-top:16px">
+                <div class="card-title" style="margin-bottom:12px">${icon("database")} Datos usados en la carga</div>
+                ${fieldGrid(selected)}
+              </div>
+            </div>
+          </div>
+          <div class="portal-browser">
+            <div class="browser-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <div class="url">${icon("lock", 13)} https://www.teleport.es/teleport/</div>
+            </div>
+            <div class="portal-page">
+              <div class="teleport-head">
+                <div class="teleport-logo">${icon("ship-wheel", 28)} Teleport</div>
+                <span style="color:#64748b;font-size:12px">Puerto de Algeciras · Versión 1.9.68</span>
+              </div>
+              <div class="portal-form">
+                ${portalField("Usuario operativo", "GLR_OPERACIONES")}
+                ${portalField("Expediente", "", "expediente")}
+                ${portalField("Buque", "", "buque")}
+                ${portalField("Número IMO", "", "imo")}
+                ${portalField("Atraque / muelle", "", "muelle")}
+                ${portalField("Residuo MARPOL", "", "residuo")}
+                ${portalField("Cantidad declarada", "", "cantidad")}
+                ${portalField("Fecha servicio", "", "fecha")}
+                ${portalField("Certificado", "", "certificado")}
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:18px">
+                <button class="btn primary" style="background:#0284c7;border-color:#0284c7">${icon("save", 15)} Registrar solicitud</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      $("#runTeleport").addEventListener("click", runTeleportSimulation);
+      refreshIcons();
+    }
+
+    function portalField(label, value, id) {
+      return `<div class="portal-field"><label>${label}</label><div class="portal-value" ${id ? `id="portal-${id}"` : ""}>${value}</div></div>`;
+    }
+
+    function teleportSteps() {
+      return [
+        { title: "Abrir portal Teleport", detail: "Pantalla de trabajo preparada para operador GLR" },
+        { title: "Crear expediente de retirada", detail: "Se genera referencia interna GLR-TP-2025-0611-001" },
+        { title: "Copiar datos MARPOL validados", detail: "Buque, IMO, muelle, residuo, volumen y certificado" },
+        { title: "Validar consistencia", detail: "Cruce entre Excel MARPOL y albarán firmado" },
+        { title: "Registrar solicitud", detail: "Simulación final, sin conexión ni envío real al portal" }
+      ];
+    }
+
+    function runTeleportSimulation() {
+      const values = {
+        expediente: "GLR-TP-2025-0611-001",
+        buque: "MV SANTA ISABEL",
+        imo: "IMO 9876543",
+        muelle: "Muelle Norte 7",
+        residuo: "Aguas Oleosas (Bilge Water)",
+        cantidad: "45 m³",
+        fecha: "11/06/2025",
+        certificado: "MARP-2025-0611-001"
+      };
+      $$(".log-item").forEach((item) => {
+        item.className = "log-item";
+        item.querySelector("div").innerHTML = icon("circle", 16);
+      });
+      Object.keys(values).forEach((key) => {
+        const node = $(`#portal-${key}`);
+        if (node) node.textContent = "";
+      });
+      teleportSteps().forEach((_, index) => {
+        setTimeout(() => {
+          const item = $(`.log-item[data-log="${index}"]`);
+          item.classList.add("active");
+          item.querySelector("div").innerHTML = '<span class="spinner" style="width:16px;height:16px"></span>';
+          refreshIcons();
+        }, index * 850);
+        setTimeout(() => {
+          const item = $(`.log-item[data-log="${index}"]`);
+          item.classList.remove("active");
+          item.classList.add("done");
+          item.querySelector("div").innerHTML = icon("check", 16);
+          refreshIcons();
+          if (index === 2) typePortalValues(values);
+          if (index === 4) {
+            state.teleportDone = true;
+            toast("Carga Teleport simulada. No se envió información real.");
+          }
+        }, index * 850 + 620);
+      });
+    }
+
+    function typePortalValues(values) {
+      Object.entries(values).forEach(([key, value], index) => {
+        setTimeout(() => typeText($(`#portal-${key}`), value), index * 220);
+      });
+    }
+
+    function typeText(node, text) {
+      if (!node) return;
+      node.classList.add("typing");
+      node.textContent = "";
+      let i = 0;
+      const timer = setInterval(() => {
+        node.textContent += text[i] || "";
+        i += 1;
+        if (i > text.length) {
+          clearInterval(timer);
+          node.classList.remove("typing");
+        }
+      }, 16);
+    }
+
+    function renderConfig() {
+      $("#section-config").innerHTML = `
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">${icon("building-2")} Compañía</div></div>
+            <div class="card-body">
+              <div class="field-grid">
+                <div class="field"><label>Empresa</label><strong>GLR Operaciones Portuarias</strong></div>
+                <div class="field"><label>Puerto</label><strong>Puerto de Algeciras</strong></div>
+                <div class="field"><label>Motor IA</label><strong>GPT-4o simulado</strong></div>
+                <div class="field"><label>Integración correo</label><strong>ops@glr-algeciras.com</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${icon("sliders-horizontal")} Automatizaciones</div>
+              <button class="btn primary" id="saveConfig">${icon("save", 15)} Guardar Cambios</button>
+            </div>
+            <div class="card-body">
+              <div class="toggle-row">
+                ${["Auto-clasificación de emails", "Extracción MARPOL automática", "Notificaciones App Conductor", "Backup diario"].map((label) => `<div class="toggle"><strong>${label}</strong><span class="switch"></span></div>`).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      $("#saveConfig").addEventListener("click", () => toast("Configuración guardada."));
+    }
+
+    function refreshIcons() {
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function boot() {
+      renderNav();
+      renderInbox();
+      renderAlbaranes();
+      renderMobile();
+      renderMarpol();
+      renderTeleport();
+      renderConfig();
+      switchTab("inbox");
+      refreshIcons();
+    }
+
+    boot();
+  </script>
+</body>
+</html>
